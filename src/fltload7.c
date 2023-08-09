@@ -22,12 +22,6 @@ im_flt2vips(const char *filename, IMAGE *out)
 	return 0;
 }
 
-static int
-isflt(const char *filename)
-{
-	return vips_foreign_is_a("fltload", filename);
-}
-
 static VipsFormatFlags
 flt_flags(const char *filename)
 {
@@ -46,7 +40,6 @@ vips_format_flt_class_init(VipsFormatFltClass *class)
 	object_class->nickname = "flt";
 	object_class->description = _("load FLT volume");
 
-	format_class->is_a = isflt;
 	format_class->load = im_flt2vips;
 	format_class->get_flags = flt_flags;
 	format_class->suffs = vips_foreign_load_flt_suffs;

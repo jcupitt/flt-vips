@@ -53,9 +53,9 @@ vips_foreign_load_flt_dispose(GObject *gobject)
 }
 
 static VipsForeignFlags
-vips_foreign_load_flt_file_get_flags_filename(const char *filename)
+vips_foreign_load_flt_file_get_flags(VipsForeignLoad *load)
 {
-	return 0;
+	return VIPS_FOREIGN_PARTIAL;
 }
 
 static int
@@ -152,6 +152,8 @@ vips_foreign_load_flt_header(VipsForeignLoad *load)
 		return -1;
 	}
 
+	printf("vips_foreign_load_flt_header: found %d slices\n", flt->n_slices);
+
 	flt->slice_names = g_slist_sort(flt->slice_names, 
 		(GCompareFunc) g_ascii_strcasecmp);
 
@@ -189,12 +191,12 @@ vips_foreign_load_flt_load(VipsForeignLoad *load)
 	for (i = 0, p = flt->slice_names; i < flt->n_slices; i++, p = p->next) {
 		const char *slice_name = (const char *) p->data;
 
-		x[i] = vips_image_new_from_file_raw(slice_name, 
-			flt->width, flt->height, vips_format_sizeof(flt->format), 0); 
+		if (!(x[i] = vips_image_new_from_file_raw(slice_name, 
+			flt->width, flt->height, vips_format_sizeof(flt->format), 0)))
+			return -1;
 
 		// force an immediate load (this will just mmap the file)
-		if (!x[i] ||
-			vips_image_wio_input(x[i]))
+		if (vips_image_wio_input(x[i]))
 			return -1;
 	}
 
@@ -238,8 +240,7 @@ vips_foreign_load_flt_class_init(VipsForeignLoadFltClass *class)
 
 	foreign_class->suffs = vips_foreign_load_flt_suffs;
 
-	load_class->get_flags_filename =
-		vips_foreign_load_flt_file_get_flags_filename;
+	load_class->get_flags = vips_foreign_load_flt_file_get_flags;
 	load_class->header = vips_foreign_load_flt_header;
 	load_class->load = vips_foreign_load_flt_load;
 
