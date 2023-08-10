@@ -53,7 +53,7 @@ vips_foreign_load_flt_dispose(GObject *gobject)
 }
 
 static VipsForeignFlags
-vips_foreign_load_flt_file_get_flags(VipsForeignLoad *load)
+vips_foreign_load_flt_get_flags(VipsForeignLoad *load)
 {
 	return VIPS_FOREIGN_PARTIAL;
 }
@@ -240,7 +240,7 @@ vips_foreign_load_flt_class_init(VipsForeignLoadFltClass *class)
 
 	foreign_class->suffs = vips_foreign_load_flt_suffs;
 
-	load_class->get_flags = vips_foreign_load_flt_file_get_flags;
+	load_class->get_flags = vips_foreign_load_flt_get_flags;
 	load_class->header = vips_foreign_load_flt_header;
 	load_class->load = vips_foreign_load_flt_load;
 
