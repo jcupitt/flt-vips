@@ -4,7 +4,7 @@
 OBJS = fltload7.o fltload.o module.o
 
 # Source files
-SRC = $(BASEOBJS:.o=.cpp) 
+SRC = $(BASEOBJS:.o=.c) 
 
 # Headers
 HEADERS = fltload.h

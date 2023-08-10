@@ -16,7 +16,7 @@
 typedef struct _VipsForeignLoadFlt {
 	VipsForeignLoad parent_object;
 
-	char *filename;
+	VipsSource *source;
 
 	/* The directory we load from.
 	 */
@@ -52,8 +52,20 @@ vips_foreign_load_flt_dispose(GObject *gobject)
 	G_OBJECT_CLASS(vips_foreign_load_flt_parent_class)->dispose(gobject);
 }
 
+static gboolean
+vips_foreign_load_flt_is_a_source(VipsSource *source)
+{
+    VipsConnection *connection = VIPS_CONNECTION(source);
+
+    const char *filename;
+
+    return vips_source_is_file(source) &&
+        (filename = vips_connection_filename(connection)) &&
+		vips_iscasepostfix(filename, ".flt");
+}
+
 static VipsForeignFlags
-vips_foreign_load_flt_file_get_flags(VipsForeignLoad *load)
+vips_foreign_load_flt_get_flags(VipsForeignLoad *load)
 {
 	return VIPS_FOREIGN_PARTIAL;
 }
@@ -114,14 +126,16 @@ static int
 vips_foreign_load_flt_header(VipsForeignLoad *load)
 {
 	VipsForeignLoadFlt *flt = (VipsForeignLoadFlt *) load;
+    const char *filename = 
+		vips_connection_filename(VIPS_CONNECTION(flt->source));
 
 	GError *error = NULL;
 	GDir *dir;
 	const char *name;
 
-	printf("vips_foreign_load_flt_header: loading %s ...\n", flt->filename);
+	printf("vips_foreign_load_flt_header: loading %s ...\n", filename);
 
-	flt->dirname = g_path_get_dirname(flt->filename);
+	flt->dirname = g_path_get_dirname(filename);
 	if (!(dir = g_dir_open(flt->dirname, 0, &error))) {
 		vips_g_error(&error);
         return -1;
@@ -171,7 +185,7 @@ vips_foreign_load_flt_header(VipsForeignLoad *load)
 	// this will let eg. tiffsave save this as a many-page tiff
 	vips_image_set_int(load->out, VIPS_META_PAGE_HEIGHT, flt->height);
 
-	VIPS_SETSTR(load->out->filename, flt->filename);
+	VIPS_SETSTR(load->out->filename, filename);
 
 	return 0;
 }
@@ -217,17 +231,12 @@ vips_foreign_load_flt_load(VipsForeignLoad *load)
 	return 0;
 }
 
-// shared with fltload7.c
-const char *vips_foreign_load_flt_suffs[] = {
-	".flt",
-	NULL
-};
-
 static void
 vips_foreign_load_flt_class_init(VipsForeignLoadFltClass *class)
 {
 	GObjectClass *gobject_class = G_OBJECT_CLASS(class);
 	VipsObjectClass *object_class = (VipsObjectClass *) class;
+	VipsOperationClass *operation_class = VIPS_OPERATION_CLASS(class);
 	VipsForeignClass *foreign_class = (VipsForeignClass *) class;
 	VipsForeignLoadClass *load_class = (VipsForeignLoadClass *) class;
 
@@ -235,21 +244,22 @@ vips_foreign_load_flt_class_init(VipsForeignLoadFltClass *class)
 	gobject_class->set_property = vips_object_set_property;
 	gobject_class->get_property = vips_object_get_property;
 
-	object_class->nickname = "fltload";
+	object_class->nickname = "fltload_source";
 	object_class->description = _("load FLT volume");
 
-	foreign_class->suffs = vips_foreign_load_flt_suffs;
-
-	load_class->get_flags = vips_foreign_load_flt_file_get_flags;
+	load_class->is_a_source = vips_foreign_load_flt_is_a_source;
+	load_class->get_flags = vips_foreign_load_flt_get_flags;
 	load_class->header = vips_foreign_load_flt_header;
 	load_class->load = vips_foreign_load_flt_load;
 
-	VIPS_ARG_STRING(class, "filename", 1,
-		_("Filename"),
-		_("Filename to load from"),
-		VIPS_ARGUMENT_REQUIRED_INPUT,
-		G_STRUCT_OFFSET(VipsForeignLoadFlt, filename),
-		NULL);
+	operation_class->flags |= VIPS_OPERATION_NOCACHE;
+
+	VIPS_ARG_OBJECT(class, "source", 1,
+        _("Source"),
+        _("Source to load from"),
+        VIPS_ARGUMENT_REQUIRED_INPUT,
+        G_STRUCT_OFFSET(VipsForeignLoadFlt, source),
+        VIPS_TYPE_SOURCE);
 
 }
 
@@ -259,8 +269,8 @@ vips_foreign_load_flt_init(VipsForeignLoadFlt *flt)
 }
 
 /**
- * vips_fltload:
- * @filename: file to load
+ * vips_fltload_source:
+ * @source: source to load from
  * @out: (out): output image
  * @...: %NULL-terminated list of optional named arguments
  *
@@ -269,13 +279,13 @@ vips_foreign_load_flt_init(VipsForeignLoadFlt *flt)
  * Returns: 0 on success, -1 on error.
  */
 int
-vips_fltload(const char *filename, VipsImage **out, ...)
+vips_fltload_source(VipsSource *source, VipsImage **out, ...)
 {
 	va_list ap;
 	int result;
 
 	va_start(ap, out);
-	result = vips_call_split("fltload", ap, filename, out);
+	result = vips_call_split("fltload_source", ap, source, out);
 	va_end(ap);
 
 	return result;
