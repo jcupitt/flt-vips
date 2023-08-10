@@ -7,8 +7,6 @@
 const gchar *
 g_module_check_init(GModule *module)
 {
-	printf("vips_fltload: module init\n"); 
-
 	vips_foreign_load_flt_get_type();
 	vips_format_flt_get_type();
 

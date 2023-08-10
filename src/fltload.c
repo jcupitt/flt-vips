@@ -119,8 +119,6 @@ vips_foreign_load_flt_header(VipsForeignLoad *load)
 	GDir *dir;
 	const char *name;
 
-	printf("vips_foreign_load_flt_header: loading %s ...\n", flt->filename);
-
 	flt->dirname = g_path_get_dirname(flt->filename);
 	if (!(dir = g_dir_open(flt->dirname, 0, &error))) {
 		vips_g_error(&error);
@@ -152,8 +150,6 @@ vips_foreign_load_flt_header(VipsForeignLoad *load)
 		return -1;
 	}
 
-	printf("vips_foreign_load_flt_header: found %d slices\n", flt->n_slices);
-
 	flt->slice_names = g_slist_sort(flt->slice_names, 
 		(GCompareFunc) g_ascii_strcasecmp);
 
@@ -170,6 +166,7 @@ vips_foreign_load_flt_header(VipsForeignLoad *load)
 
 	// this will let eg. tiffsave save this as a many-page tiff
 	vips_image_set_int(load->out, VIPS_META_PAGE_HEIGHT, flt->height);
+	vips_image_set_int(load->out, VIPS_META_N_PAGES, flt->n_slices);
 
 	VIPS_SETSTR(load->out->filename, flt->filename);
 
